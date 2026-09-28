@@ -1,0 +1,56 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite it using the metadata
+  in this file, together with the methodological references below.
+title: IMTP_Analysis_Script
+type: software
+authors:
+  - family-names: Guppy
+    given-names: Stuart N.
+repository-code: 'https://github.com/sguppy-91/IMTP_Analysis_Script'
+license: MIT
+date-released: '2026-09-28'
+references:
+  - type: article
+    title: >-
+      A comparison of manual and automatic force-onset identification
+      methodologies and their effect on force-time characteristics in the
+      isometric midthigh pull
+    authors:
+      - family-names: Guppy
+        given-names: Stuart N.
+      - family-names: Brady
+        given-names: C. J.
+      - family-names: Kotani
+        given-names: Y.
+      - family-names: Connolly
+        given-names: S.
+      - family-names: Comfort
+        given-names: P.
+      - family-names: Lake
+        given-names: J. P.
+      - family-names: Haff
+        given-names: G. G.
+    journal: 'Sports Biomechanics'
+    volume: '23'
+    issue: '10'
+    pages: '1663-1680'
+    year: '2024'
+    doi: 10.1080/14763141.2021.1974532
+  - type: article
+    title: 'Using Python to analyse isometric force-time curves'
+    authors:
+      - family-names: Smith
+        given-names: J. C.
+      - family-names: Nagatani
+        given-names: T.
+      - family-names: Guppy
+        given-names: Stuart N.
+      - family-names: Haff
+        given-names: G. G.
+    journal: 'Strength & Conditioning Journal'
+    volume: '47'
+    issue: '3'
+    pages: '287-301'
+    year: '2025'
+    doi: 10.1519/SSC.0000000000000872
