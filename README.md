@@ -58,6 +58,12 @@ python IMTP_Analysis_Script.py
 4. Variables are displayed and appended to the results CSV; cancel the
    file dialog to finish.
 
+## References
+
+Guppy, S. N., Brady, C. J., Kotani, Y., Connolly, S., Comfort, P., Lake, J. P., & Haff, G. G. (2024). A comparison of manual and automatic force-onset identification methodologies and their effect on force-time characteristics in the isometric midthigh pull. *Sports Biomechanics*, *23*(10), 1663–1680. https://doi.org/10.1080/14763141.2021.1974532
+
+Smith, J. C., Nagatani, T., Guppy, S. N., & Haff, G. G. (2025). Using Python to analyse isometric force-time curves. *Strength & Conditioning Journal*, *47*(3), 287–301. https://doi.org/10.1519/SSC.0000000000000872
+
 ## Acknowledgments
 
 The development of this script was supported by an NSCA Young
