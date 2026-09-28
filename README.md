@@ -73,7 +73,7 @@ Investigator Grant.
 
 This software was developed with assistance from AI coding tools,
 including the GLM-5.3 (Z.ai, China; hosted by Mistral AI) large
-language model and the OpenCode coding agent.
+language model and the OpenCode coding agent (version 2.0.18).
 
 AI assistance was used for software design discussion, code generation
 and refactoring, testing, documentation, and debugging. The analytical
