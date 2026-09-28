@@ -58,6 +58,11 @@ python IMTP_Analysis_Script.py
 4. Variables are displayed and appended to the results CSV; cancel the
    file dialog to finish.
 
+## Acknowledgments
+
+The development of this script was supported by an NSCA Young
+Investigator Grant.
+
 ## Development
 
 This software was developed with assistance from AI coding tools,
