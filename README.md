@@ -66,7 +66,7 @@ Smith, J. C., Nagatani, T., Guppy, S. N., & Haff, G. G. (2025). Using Python to 
 
 ## Acknowledgments
 
-The development of this script was supported by an NSCA Young
+The development of this script was supported by a NSCA Foundation Young
 Investigator Grant.
 
 ## Development
