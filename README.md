@@ -1,4 +1,4 @@
-# IMTP_Analysis_Script
+# IMTP Analysis Script
 
 Isometric mid-thigh pull (IMTP) force-time analysis with an
 analyst-in-the-loop GUI workflow.
@@ -58,7 +58,8 @@ python IMTP_Analysis_Script.py
 4. Variables are displayed and appended to the results CSV; cancel the
    file dialog to finish.
 
-## References
+## Methodological Basis and References
+The analytical procedures implemented in this Python script were informed by the following methodological literature:
 
 Guppy, S. N., Brady, C. J., Kotani, Y., Connolly, S., Comfort, P., Lake, J. P., & Haff, G. G. (2024). A comparison of manual and automatic force-onset identification methodologies and their effect on force-time characteristics in the isometric midthigh pull. *Sports Biomechanics*, *23*(10), 1663–1680. https://doi.org/10.1080/14763141.2021.1974532
 
@@ -72,8 +73,7 @@ Investigator Grant.
 ## Development
 
 This software was developed with assistance from AI coding tools,
-including the GLM-5.3 (Z.ai, China; hosted by Mistral AI) large
-language model and the OpenCode coding agent (version 2.0.18).
+including the GLM-5.3 large language model (Z.ai, China; hosted by Mistral AI, France) and the OpenCode CLI coding agent (version 2.0.18).
 
 AI assistance was used for software design discussion, code generation
 and refactoring, testing, documentation, and debugging. The analytical
