@@ -1,6 +1,6 @@
 {
   "meta": {
-    "monolith_sha256": "5de9a79b1b9fa171266e5d2d2bf38a75cf23d3d0e5a2ee4bffe3d757a1845df4",
+    "monolith_sha256": "0b3177eaeacfa2ce44ec35c49d1829882f6fcc4c5e236798a53bd331483fb0ff",
     "numpy": "2.5.3",
     "pandas": "3.0.5",
     "python": "3.14.7",
@@ -46,7 +46,7 @@
         "wsd_neg3": 858.0560124911734,
         "wsd_pos3": 872.0094070736292
       },
-      "source": "tools/golden/fixtures/generic.csv",
+      "source": "tests/data/fixtures/generic.csv",
       "system": "generic (Time (s) + Force (N))",
       "time_first": 0.0,
       "time_last": 8.299
@@ -90,7 +90,7 @@
         "wsd_neg3": 838.0560124911734,
         "wsd_pos3": 852.0094070736292
       },
-      "source": "tools/golden/fixtures/hawkin.csv",
+      "source": "tests/data/fixtures/hawkin.csv",
       "system": "Hawkin Dynamics",
       "time_first": 0.0,
       "time_last": 7.799
@@ -134,7 +134,7 @@
         "wsd_neg3": 793.0560124911734,
         "wsd_pos3": 807.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_distractor.csv",
+      "source": "tests/data/fixtures/pasco_distractor.csv",
       "system": "PASCO Run #1",
       "time_first": 0.0,
       "time_last": 6.4990000000000006
@@ -178,7 +178,7 @@
         "wsd_neg3": 803.0560124911734,
         "wsd_pos3": 817.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_distractor.csv",
+      "source": "tests/data/fixtures/pasco_distractor.csv",
       "system": "PASCO Run #2",
       "time_first": 0.0,
       "time_last": 6.4990000000000006
@@ -222,7 +222,7 @@
         "wsd_neg3": 813.0560124911734,
         "wsd_pos3": 827.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_distractor.csv",
+      "source": "tests/data/fixtures/pasco_distractor.csv",
       "system": "PASCO Run #3",
       "time_first": 0.0,
       "time_last": 6.4990000000000006
@@ -266,7 +266,7 @@
         "wsd_neg3": 823.0560124911734,
         "wsd_pos3": 837.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_distractor.csv",
+      "source": "tests/data/fixtures/pasco_distractor.csv",
       "system": "PASCO Run #4",
       "time_first": 0.0,
       "time_last": 6.4990000000000006
@@ -310,7 +310,7 @@
         "wsd_neg3": 833.0560124911734,
         "wsd_pos3": 847.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_distractor.csv",
+      "source": "tests/data/fixtures/pasco_distractor.csv",
       "system": "PASCO Run #5",
       "time_first": 0.0,
       "time_last": 6.4990000000000006
@@ -354,7 +354,7 @@
         "wsd_neg3": 868.0560124911734,
         "wsd_pos3": 882.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_left_right.csv",
+      "source": "tests/data/fixtures/pasco_left_right.csv",
       "system": "PASCO Run #1",
       "time_first": 0.0,
       "time_last": 7.899
@@ -398,7 +398,7 @@
         "wsd_neg3": 823.0560124911734,
         "wsd_pos3": 837.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_multirun.csv",
+      "source": "tests/data/fixtures/pasco_multirun.csv",
       "system": "PASCO Run #1",
       "time_first": 0.0,
       "time_last": 4.499
@@ -442,7 +442,7 @@
         "wsd_neg3": 843.0560124911734,
         "wsd_pos3": 857.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_multirun.csv",
+      "source": "tests/data/fixtures/pasco_multirun.csv",
       "system": "PASCO Run #2",
       "time_first": 0.0,
       "time_last": 7.999
@@ -486,7 +486,7 @@
         "wsd_neg3": 853.0560124911734,
         "wsd_pos3": 867.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_multirun.csv",
+      "source": "tests/data/fixtures/pasco_multirun.csv",
       "system": "PASCO Run #3",
       "time_first": 0.0,
       "time_last": 7.499
@@ -530,7 +530,7 @@
         "wsd_neg3": 833.0560124911734,
         "wsd_pos3": 847.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_multirun.csv",
+      "source": "tests/data/fixtures/pasco_multirun.csv",
       "system": "PASCO Run #4",
       "time_first": 0.0,
       "time_last": 8.999
@@ -574,7 +574,7 @@
         "wsd_neg3": 863.0560124911734,
         "wsd_pos3": 877.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_multirun.csv",
+      "source": "tests/data/fixtures/pasco_multirun.csv",
       "system": "PASCO Run #5",
       "time_first": 0.0,
       "time_last": 8.499
@@ -618,7 +618,7 @@
         "wsd_neg3": 828.0560124911734,
         "wsd_pos3": 842.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_multirun.csv",
+      "source": "tests/data/fixtures/pasco_multirun.csv",
       "system": "PASCO Run #6",
       "time_first": 0.0,
       "time_last": 9.499
@@ -662,7 +662,7 @@
         "wsd_neg3": 818.0560124911734,
         "wsd_pos3": 832.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_multirun.csv",
+      "source": "tests/data/fixtures/pasco_multirun.csv",
       "system": "PASCO Run #7",
       "time_first": 0.0,
       "time_last": 8.799
@@ -706,7 +706,7 @@
         "wsd_neg3": 848.0560124911734,
         "wsd_pos3": 862.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_multirun.csv",
+      "source": "tests/data/fixtures/pasco_multirun.csv",
       "system": "PASCO Run #8",
       "time_first": 0.0,
       "time_last": 9.199
@@ -750,7 +750,7 @@
         "wsd_neg3": 813.0560124911734,
         "wsd_pos3": 827.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_multirun.csv",
+      "source": "tests/data/fixtures/pasco_multirun.csv",
       "system": "PASCO Run #9",
       "time_first": 0.0,
       "time_last": 8.199
@@ -794,7 +794,7 @@
         "wsd_neg3": 843.0560124911734,
         "wsd_pos3": 857.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_preamble.csv",
+      "source": "tests/data/fixtures/pasco_preamble.csv",
       "system": "PASCO Run #1",
       "time_first": 0.0,
       "time_last": 5.0
@@ -838,7 +838,7 @@
         "wsd_neg3": 853.0560124911734,
         "wsd_pos3": 867.0094070736292
       },
-      "source": "tools/golden/fixtures/pasco_preamble.csv",
+      "source": "tests/data/fixtures/pasco_preamble.csv",
       "system": "PASCO Run #2",
       "time_first": 0.0,
       "time_last": 5.0

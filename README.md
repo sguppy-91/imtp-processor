@@ -66,6 +66,26 @@ python IMTP_Analysis_Script.py
 4. Variables are displayed and appended to the results CSV; cancel the
    file dialog to finish.
 
+## Testing
+
+```bash
+pip install -e ".[gui,test]"
+pytest
+```
+
+The suite covers the import layer (every plate format plus edge cases:
+multi-run padding, metadata preambles, left/right summing, distractor
+columns), bodyweight calculation, countermovement screening, onset
+utilities, force metrics, data models and export — plus a golden-master
+regression test that verifies the package reproduces the reference
+outputs (frozen in `tests/data/` from the original script) at float
+precision, and an architecture guard proving the analysis engine
+imports without any GUI or plotting dependency.
+
+The reference data and the `tools/golden_master.py` harness that
+generates it use fully synthetic force curves; no real participant
+data is included.
+
 ## Methodological Basis and References
 The analytical procedures implemented in this Python script were informed by the following methodological literature:
 

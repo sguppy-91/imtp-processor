@@ -13,6 +13,8 @@ here; its job is to freeze current behaviour, quirks included.
 
 All fixtures are FULLY SYNTHETIC (deterministic force curves built from
 closed-form math, no RNG), so no real participant data enters the repo.
+Fixture CSVs and the golden JSON live in tests/data/ (the automated
+test suite uses the same reference data).
 
 Usage:
     python tools/golden_master.py                 # regenerate golden files
@@ -34,9 +36,9 @@ import pandas as pd
 
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "IMTP_Analysis_Script.py"
-GOLDEN_DIR = REPO / "tools" / "golden"
-FIXTURE_DIR = GOLDEN_DIR / "fixtures"
-GOLDEN_JSON = GOLDEN_DIR / "golden_results.json"
+DATA_DIR = REPO / "tests" / "data"
+FIXTURE_DIR = DATA_DIR / "fixtures"
+GOLDEN_JSON = DATA_DIR / "golden_results.json"
 
 # Make the in-repo package importable (mirrors the monolith's shim).
 sys.path.insert(0, str(REPO / "src"))
@@ -423,7 +425,7 @@ def generate():
         "pandas": pd.__version__,
         "numpy": np.__version__,
     }
-    GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     GOLDEN_JSON.write_text(json.dumps(results, indent=2, sort_keys=True))
     print(f"Wrote {len(results['trials'])} golden trials to {GOLDEN_JSON}")
 

@@ -30,9 +30,16 @@ gui = [
     "matplotlib",
     "PySimpleGUI",
 ]
+# Automated test suite
+test = [
+    "pytest",
+]
 
 [project.urls]
 Homepage = "https://github.com/sguppy-91/IMTP_Analysis_Script"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
