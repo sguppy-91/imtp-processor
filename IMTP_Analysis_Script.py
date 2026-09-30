@@ -1,5 +1,6 @@
 import os
-import re
+import sys
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -10,182 +11,21 @@ import PySimpleGUI as sg
 
 sg.theme('DarkTeal6')
 
-# ---------------------------------------------------------------------------
-# Force-plate system agnostic CSV import
-# ---------------------------------------------------------------------------
-# Known export layouts are sniffed from the header and mapped to canonical
-# column names (Time, Fz); unrecognised files fall back to a generic
-# time/force column search, so a new plate system usually needs no code
-# change to be read. Everything downstream only uses Time and Fz.
+# Temporary path shim so the in-repo package (src/imtp) is importable
+# before the project becomes pip-installable (a later refactor phase).
+sys.path.insert(0, str(Path(__file__).resolve().parent / 'src'))
 
-# PASCO exports one column group per recorded run, labelled 'Run #N'
-# (e.g. 'Fz (N) Run #3'). Shorter runs are padded with blank cells, and
-# some exports put a few metadata lines before the header row.
-PASCO_RUN_TOKEN = re.compile(r'\bRun #(?P<run>\d+)\b')
+from imtp.io import read_force_csv
+from imtp.processing.bodyweight import (WEIGH_WINDOW_S,
+                                         calculate_bodyweight)
+from imtp.processing.countermovement import (detect_countermovement,
+                                              up_to_peak)
+from imtp.processing.onset import select_onset, trim_to_onset
+from imtp.processing.metrics import calculate_force_metrics
 
-HAWKIN_COLUMNS = {'Time': 'Time (s)', 'lFz': 'Left (N)',
-                  'rFz': 'Right (N)', 'Fz': 'Combined (N)'}
+# WEIGH_WINDOW_S is re-exported for backward compatibility (external
+# callers and the golden-master harness read it from this module).
 
-
-def _pasco_split_column(col):
-    """Split a 'Name Run #N' column into (run number, base name), else None.
-
-    The 'Run #N' token is matched anywhere in the column name, so both
-    suffix ('Time (s) Run #1') and prefix ('Run #1 Time (s)') layouts work.
-    """
-    m = PASCO_RUN_TOKEN.search(str(col))
-    if not m:
-        return None
-    base = PASCO_RUN_TOKEN.sub('', str(col)).strip()
-    return int(m.group('run')), base
-
-
-def _is_force_name(name):
-    """True when a column name looks like a vertical-force measurement."""
-    low = name.strip().lower()
-    return ('force' in low or 'fz' in low or 'combined' in low
-            or 'total' in low or low.endswith('(n)'))
-
-
-def _is_combined_force_name(name):
-    """True when a column already holds the combined (e.g. left+right) force."""
-    low = name.strip().lower()
-    return low.startswith('fz') or 'combined' in low or 'total' in low
-
-
-def _pasco_run_columns(columns):
-    """Map run number -> (time column, force columns) for PASCO exports.
-
-    A combined force column (e.g. 'Fz (N)') is preferred when present;
-    otherwise every force-looking column in the run is returned so their
-    sum can be used (e.g. separate left/right plate channels).
-    """
-    global_tcol = None
-    groups = {}
-    for col in columns:
-        col = str(col)
-        split = _pasco_split_column(col)
-        if split is None:
-            if global_tcol is None and 'time' in col.lower():
-                global_tcol = col
-            continue
-        run, base = split
-        groups.setdefault(run, []).append((col, base))
-
-    resolved = {}
-    for run, entries in sorted(groups.items()):
-        tcol = next((c for c, b in entries if 'time' in b.lower()),
-                    global_tcol)
-        if tcol is None:
-            continue
-        forces = [(c, b) for c, b in entries
-                  if c != tcol and _is_force_name(b)]
-        if not forces:
-            continue
-        combined = next((c for c, b in forces
-                         if _is_combined_force_name(b)), None)
-        resolved[run] = (tcol, [combined] if combined
-                         else [c for c, _ in forces])
-    return resolved
-
-
-def _pasco_preamble_rows(csv_file, max_scan=25):
-    """Count metadata rows before a PASCO header line, or None if none.
-
-    Some PASCO exports start with run/file metadata lines; the real
-    header is the first line naming both a run and a time column.
-    """
-    with open(csv_file, encoding='utf-8-sig', errors='replace') as f:
-        for i, line in enumerate(f):
-            if i >= max_scan:
-                break
-            low = line.lower()
-            if 'run #' in low and 'time' in low and ',' in low:
-                return i if i else None
-    return None
-
-
-def _generic_columns(columns):
-    """Best-guess (time, force) column names for an unknown export."""
-    tcol = next((c for c in columns if 'time' in c.lower()), None)
-    if tcol is None:
-        return None
-    others = [c for c in columns if c != tcol]
-    fzcol = next((c for c in others
-                  if 'combined' in c.lower() or c.lower().startswith('fz')),
-                 None) \
-        or next((c for c in others
-                 if 'force' in c.lower() and '(n)' in c.lower()), None) \
-        or next((c for c in others if '(n)' in c.lower()), None)
-    if fzcol is None:
-        return None
-    return tcol, fzcol
-
-
-def read_force_csv(csv_file):
-    """Read a force-plate CSV export into canonical Time/Fz DataFrames.
-
-    Returns a list of (data, system_name) trials — one entry for most
-    exports, one per run for multi-run PASCO exports. Raises ValueError
-    when no time and vertical force columns can be identified.
-    """
-    # Some PASCO exports start with metadata lines that break a naive
-    # read; locate the real header row and start from there instead.
-    try:
-        df = pd.read_csv(csv_file, encoding='utf-8-sig')
-        columns = [str(c) for c in df.columns]
-    except pd.errors.ParserError:
-        skip = _pasco_preamble_rows(csv_file)
-        if skip is None:
-            raise
-        df = pd.read_csv(csv_file, encoding='utf-8-sig', skiprows=skip)
-        columns = [str(c) for c in df.columns]
-
-    # Hawkin Dynamics export
-    if all(c in columns for c in HAWKIN_COLUMNS.values()):
-        data = df[list(HAWKIN_COLUMNS.values())].copy()
-        data.columns = list(HAWKIN_COLUMNS)
-        return [(data, 'Hawkin Dynamics')]
-
-    # PASCO export: one trial per 'Run #N' column group. A header may
-    # still sit below preamble lines that happen to parse cleanly, so
-    # retry past them when no run columns are found.
-    pasco = _pasco_run_columns(columns)
-    if not pasco:
-        skip = _pasco_preamble_rows(csv_file)
-        if skip:
-            df = pd.read_csv(csv_file, encoding='utf-8-sig', skiprows=skip)
-            columns = [str(c) for c in df.columns]
-            pasco = _pasco_run_columns(columns)
-    if pasco:
-        trials = []
-        for run in sorted(pasco):
-            tcol, fcols = pasco[run]
-            sub = df[[tcol] + fcols].dropna()
-            data = pd.DataFrame({'Time': sub[tcol].to_numpy(),
-                                 'Fz': sub[fcols].sum(axis=1).to_numpy()})
-            if len(data) < 2:
-                raise ValueError(f'PASCO run {run} has fewer than 2 samples')
-            trials.append((data, f'PASCO Run #{run}'))
-        return trials
-
-    # Unknown system: best-guess time and force columns
-    generic = _generic_columns(columns)
-    if generic:
-        tcol, fzcol = generic
-        data = df[[tcol, fzcol]].dropna().copy()
-        data.columns = ['Time', 'Fz']
-        if len(data) < 2:
-            raise ValueError(f'fewer than 2 samples in {tcol}/{fzcol}')
-        return [(data, f'generic ({tcol} + {fzcol})')]
-
-    raise ValueError(
-        f'Could not identify time and force columns. Found: {columns}')
-
-# Duration of the weighing phase averaged for body weight. Time-based so
-# the window is identical at any sampling rate (a fixed sample count
-# would only be 1 s at exactly 1000 Hz).
-WEIGH_WINDOW_S = 1.0
 
 
 def main():
@@ -252,22 +92,15 @@ def main():
 
                 # Determining Weight & Beginning of Testing
                 # Clicked x-coordinate is the trim time in seconds; nearest sample
-                trim_idx = int((np.abs(data.Time.values - clicked[0][0])).argmin())
-                df = data.iloc[trim_idx:]
-                weigh = df[df['Time'] <= df['Time'].iloc[0] + WEIGH_WINDOW_S]['Fz']
-                if len(weigh) < 2:
-                    raise ValueError('fewer than 2 samples in the weighing window')
-                Weight = weigh.mean()
-                Mass = Weight / 9.81
-                stddev = weigh.std()
-                SD3 = stddev * 3
-                WSD_pos3 = Weight + SD3
-                WSD_neg3 = Weight - SD3
+                bw = calculate_bodyweight(data, clicked[0][0])
+                df = bw['df']
+                Weight = bw['weight']
+                Mass = bw['mass']
+                WSD_pos3 = bw['wsd_pos3']
+                WSD_neg3 = bw['wsd_neg3']
                 # To Detect a Countermovement
-                Fzmax = df.Fz.idxmax()
-                df1 = df.truncate(after=Fzmax)
-                a = Weight - 50
-                if (df1['Fz'] < a).any():
+                df1 = up_to_peak(df)
+                if detect_countermovement(df, Weight):
                     sg.popup_error('Countermovement detected')
                 else:
                     sg.popup('No countermovement detected')
@@ -334,30 +167,21 @@ def main():
 
                 plt.show()
 
-                onset_Fz = data['Fz'].iloc[(np.abs(time_values - onset_time[0])).argmin()]
+                onset_Fz, start = select_onset(data, df1, onset_time[0])
                 print(f"onset_time = {onset_time[0]}")
                 print(f"onset_Fz = {onset_Fz}")
 
-                start = df1.index[(np.abs(df1['Time'].values - onset_time[0])).argmin()]
-
                 # Trimming Force-Time Curve
-                df2 = df1.truncate(before=start).reset_index()
-                df2['ntime'] = df2['Time'] - df2['Time'].iloc[0]
+                df2 = trim_to_onset(df1, start)
 
-                # Calculating Peak Force variables
-                df2['net_Force'] = df2['Fz'] - Weight
-                Peak_Force = df2['net_Force'].max()
-
-                # Calculating Force at Specific Points (by time in ms, not sample index)
-                ntime_values = df2['ntime'].values
-                def force_at_ms(ms):
-                    idx = np.abs(ntime_values - ms / 1000).argmin()
-                    return df2['net_Force'].iloc[idx]
-                F50 = force_at_ms(50)
-                F100 = force_at_ms(100)
-                F150 = force_at_ms(150)
-                F200 = force_at_ms(200)
-                F250 = force_at_ms(250)
+                # Calculating force-time variables
+                m = calculate_force_metrics(df2, Weight)
+                Peak_Force = m['peak_force']
+                F50 = m['f50']
+                F100 = m['f100']
+                F150 = m['f150']
+                F200 = m['f200']
+                F250 = m['f250']
 
                 # Create DataFrame for Force Variables
                 force_vars = {

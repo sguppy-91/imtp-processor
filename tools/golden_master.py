@@ -36,6 +36,9 @@ GOLDEN_DIR = REPO / "tools" / "golden"
 FIXTURE_DIR = GOLDEN_DIR / "fixtures"
 GOLDEN_JSON = GOLDEN_DIR / "golden_results.json"
 
+# Make the in-repo package importable (mirrors the monolith's shim).
+sys.path.insert(0, str(REPO / "src"))
+
 # ---------------------------------------------------------------------------
 # Synthetic force-curve generation (deterministic, closed-form; no RNG)
 # ---------------------------------------------------------------------------
@@ -322,6 +325,67 @@ def run_pipeline(data, weigh_start, onset_time):
     }
 
 
+def _export_row(peak_force, f50, f100, f150, f200, f250):
+    """The monolith's results-DataFrame build + rounding (verbatim)."""
+    force_vars = {
+        'Participant': ['GOLDEN'],
+        'Session': ['G0'],
+        'Trial': ['1'],
+        'Variable': ['Net Force'],
+        'Peak': [peak_force],
+        '50 ms': [f50],
+        '100 ms': [f100],
+        '150 ms': [f150],
+        '200 ms': [f200],
+        '250 ms': [f250],
+    }
+    df3 = pd.DataFrame.from_dict(force_vars)
+    df3 = np.round(df3, decimals=1)
+    return {k: str(v) for k, v in df3.iloc[0].to_dict().items()}
+
+
+def run_package_pipeline(data, weigh_start, onset_time):
+    """Same pipeline as run_pipeline, but through the extracted imtp
+    package. This is the system under test from Phase 1 onward: it must
+    reproduce the frozen goldens exactly."""
+    from imtp.io import read_force_csv  # noqa: F401  (import sanity)
+    from imtp.processing.bodyweight import calculate_bodyweight
+    from imtp.processing.countermovement import (detect_countermovement,
+                                                 up_to_peak)
+    from imtp.processing.onset import select_onset, trim_to_onset
+    from imtp.processing.metrics import calculate_force_metrics
+
+    bw = calculate_bodyweight(data, weigh_start)
+    df = bw['df']
+    countermovement = detect_countermovement(df, bw['weight'])
+    df1 = up_to_peak(df)
+    onset_Fz, start = select_onset(data, df1, onset_time)
+    df2 = trim_to_onset(df1, start)
+    m = calculate_force_metrics(df2, bw['weight'])
+    return {
+        "trim_idx": bw['trim_idx'],
+        "weight": float(bw['weight']),
+        "mass": float(bw['mass']),
+        "stddev": float(bw['stddev']),
+        "sd3": float(bw['sd3']),
+        "wsd_pos3": float(bw['wsd_pos3']),
+        "wsd_neg3": float(bw['wsd_neg3']),
+        "countermovement": countermovement,
+        "fzmax_index": int(df.Fz.idxmax()),
+        "onset_fz": float(onset_Fz),
+        "start_index": int(start),
+        "n_df2": int(len(df2)),
+        "peak_force": float(m['peak_force']),
+        "f50": float(m['f50']),
+        "f100": float(m['f100']),
+        "f150": float(m['f150']),
+        "f200": float(m['f200']),
+        "f250": float(m['f250']),
+        "export_row": _export_row(m['peak_force'], m['f50'], m['f100'],
+                                  m['f150'], m['f200'], m['f250']),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Generate / check
 # ---------------------------------------------------------------------------
@@ -398,6 +462,10 @@ def check():
 
     failures = []
     n = 0
+    import imtp.io
+    if monolith.read_force_csv is not imtp.io.read_force_csv:
+        failures.append("monolith.read_force_csv is not imtp.io.read_force_csv "
+                        "(the monolith must delegate, not duplicate)")
     for case_id, path, data, system in _read_all(monolith):
         expected = saved["trials"][case_id]
         actual = {
@@ -411,6 +479,10 @@ def check():
             "pipeline": run_pipeline(data, **PARAMS[case_id]),
         }
         failures += compare(case_id, expected, actual)
+        # From Phase 1 onward the extracted package must also reproduce
+        # the frozen goldens.
+        pkg = run_package_pipeline(data, **PARAMS[case_id])
+        failures += compare(f"{case_id} [package]", expected["pipeline"], pkg)
         n += 1
     if failures:
         print(f"FAIL — {len(failures)} difference(s):")
