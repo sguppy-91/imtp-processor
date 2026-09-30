@@ -3,17 +3,19 @@ import sys
 from pathlib import Path
 import pandas as pd
 import numpy as np
-import matplotlib
-matplotlib.use('MacOSX')
-import matplotlib.pyplot as plt
-from matplotlib.widgets import Button
-import PySimpleGUI as sg
-
-sg.theme('DarkTeal6')
 
 # Temporary path shim so the in-repo package (src/imtp) is importable
 # before the project becomes pip-installable (a later refactor phase).
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'src'))
+
+# Importing the gui package selects the matplotlib backend and applies
+# the PySimpleGUI theme (as the original script did at import time), so
+# it must be imported before matplotlib.pyplot.
+from imtp.gui import (enter_metadata, select_onset_time,
+                      select_weighing_start)
+
+import matplotlib.pyplot as plt
+import PySimpleGUI as sg
 
 from imtp.io import load_trial
 from imtp.processing.bodyweight import (WEIGH_WINDOW_S,
@@ -64,39 +66,20 @@ def main():
                 print(f"Imported {system} data: {csv_file}")
 
                 # Enter participant metadata for this trial
-                participant = sg.popup_get_text('Enter participant code (e.g. P001)', title='Participant',
-                                               default_text=last_participant)
-                if participant is None:
+                last_participant, last_session, entered = enter_metadata(
+                    trial_obj, last_participant, last_session)
+                if not entered:
                     break
-                last_participant = participant
-                trial_obj.participant = participant
-                session = sg.popup_get_text('Enter session (e.g. T1)', title='Session',
-                                            default_text=last_session)
-                if session is None:
-                    break
-                last_session = session
-                trial_obj.session = session
-                trial = sg.popup_get_text('Enter trial number (e.g. 1)', title='Trial',
-                                          default_text=trial_obj.trial)
-                if trial is None:
-                    break
-                trial_obj.trial = trial
 
                 # Create Graph to be Inspected — click the start of the weighing phase
-                plt.plot(data.Time, data.Fz)
-                plt.title('Click the start of the weighing phase')
-                plt.xlabel('Time (s)')
-                plt.ylabel('Force (N)')
-                plt.grid(True, alpha=0.3)
-                clicked = plt.ginput(1, timeout=-1)
-                plt.close('all')
-                if not clicked:
+                weigh_start = select_weighing_start(data)
+                if weigh_start is None:
                     sg.popup_error('No point selected - skipping this trial.')
                     continue
 
                 # Determining Weight & Beginning of Testing
                 # Clicked x-coordinate is the trim time in seconds; nearest sample
-                bw = calculate_bodyweight(data, clicked[0][0])
+                bw = calculate_bodyweight(data, weigh_start)
                 df = bw['df']
                 Weight = bw['weight']
                 Mass = bw['mass']
@@ -109,70 +92,11 @@ def main():
                 else:
                     sg.popup('No countermovement detected')
 
-                # Create a plot with a draggable vertical line for onset selection
-                fig, ax = plt.subplots()
-                fig.subplots_adjust(bottom=0.18)
-                ax.plot(data.Time, data.Fz)
-                ax.axhline(y=WSD_neg3, color='k', linestyle='--', label='3 SD')
-                ax.axhline(y=WSD_pos3, color='k', linestyle='--')
-                ax.set_title("Drag the red line to the onset point, then click Save")
-                ax.set_xlabel("Time (s)")
-                ax.set_ylabel("Force (N)")
+                # Select the force onset with the draggable-line plot
+                onset = select_onset_time(data, WSD_neg3, WSD_pos3)
 
-                time_values = data.Time.values
-                initial_x = time_values[len(time_values) // 2]
-                vline = ax.axvline(x=initial_x, color='r', linestyle='-', linewidth=2, label='Onset')
-                onset_time = [initial_x]
-                dragging = [False]
-                time_text = ax.text(0.02, 0.95, f"Onset: {initial_x:.3f} s", transform=ax.transAxes, fontsize=11, color='r', va='top')
-
-                def on_press(event):
-                    if event.inaxes != ax or event.xdata is None:
-                        return
-                    xline = vline.get_xdata()[0]
-                    grab_radius = (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.05
-                    if abs(event.xdata - xline) < grab_radius:
-                        dragging[0] = True
-                    else:
-                        # Click away from line: jump line to clicked position
-                        nearest_idx = np.abs(time_values - event.xdata).argmin()
-                        new_x = time_values[nearest_idx]
-                        vline.set_xdata([new_x, new_x])
-                        onset_time[0] = new_x
-                        time_text.set_text(f"Onset: {new_x:.3f} s")
-                        fig.canvas.draw_idle()
-
-                def on_release(event):
-                    dragging[0] = False
-
-                def on_motion(event):
-                    if not dragging[0] or event.inaxes != ax or event.xdata is None:
-                        return
-                    nearest_idx = np.abs(time_values - event.xdata).argmin()
-                    new_x = time_values[nearest_idx]
-                    vline.set_xdata([new_x, new_x])
-                    onset_time[0] = new_x
-                    time_text.set_text(f"Onset: {new_x:.3f} s")
-                    fig.canvas.draw_idle()
-
-                fig.canvas.mpl_connect('button_press_event', on_press)
-                fig.canvas.mpl_connect('button_release_event', on_release)
-                fig.canvas.mpl_connect('motion_notify_event', on_motion)
-
-                # Save button: confirms the onset and continues processing.
-                # Closing the window still works as a fallback.
-                save_ax = fig.add_axes([0.81, 0.03, 0.16, 0.06])
-                save_btn = Button(save_ax, 'Save')
-
-                def on_save(event):
-                    plt.close(fig)
-
-                save_btn.on_clicked(on_save)
-
-                plt.show()
-
-                onset_Fz, start = select_onset(data, df1, onset_time[0])
-                print(f"onset_time = {onset_time[0]}")
+                onset_Fz, start = select_onset(data, df1, onset)
+                print(f"onset_time = {onset}")
                 print(f"onset_Fz = {onset_Fz}")
 
                 # Trimming Force-Time Curve
@@ -189,9 +113,9 @@ def main():
 
                 # Create DataFrame for Force Variables
                 force_vars = {
-                    'Participant': [participant],
-                    'Session': [session],
-                    'Trial': [trial],
+                    'Participant': [trial_obj.participant],
+                    'Session': [trial_obj.session],
+                    'Trial': [trial_obj.trial],
                     'Variable': ['Net Force'],
                     'Peak': [Peak_Force],
                     '50 ms': [F50],

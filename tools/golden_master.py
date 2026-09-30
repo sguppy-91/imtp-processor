@@ -24,6 +24,8 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -480,6 +482,9 @@ def check():
     import imtp.processing.countermovement as cm_mod
     import imtp.processing.onset as onset_mod
     import imtp.processing.metrics as metrics_mod
+    import imtp.gui.onset_selector as onset_gui
+    import imtp.gui.participant_dialog as pdlg_gui
+    import imtp.gui.weighing_selector as weigh_gui
     from imtp.models.trial import default_trial_label
     guards = {
         "load_trial": (monolith.load_trial, imtp.io.load_trial),
@@ -492,6 +497,11 @@ def check():
         "trim_to_onset": (monolith.trim_to_onset, onset_mod.trim_to_onset),
         "calculate_force_metrics": (monolith.calculate_force_metrics,
                                     metrics_mod.calculate_force_metrics),
+        "enter_metadata": (monolith.enter_metadata, pdlg_gui.enter_metadata),
+        "select_weighing_start": (monolith.select_weighing_start,
+                                  weigh_gui.select_weighing_start),
+        "select_onset_time": (monolith.select_onset_time,
+                              onset_gui.select_onset_time),
     }
     for name, (mono_fn, pkg_fn) in guards.items():
         if mono_fn is not pkg_fn:
@@ -525,6 +535,25 @@ def check():
                 or data_fingerprint(pkg_trial.data) != expected["fingerprint"]):
             failures.append(f"{case_id}: load_trial mismatch")
         n += 1
+
+    # Phase 3 architecture guard: the core package (io, processing,
+    # models) must be importable in a fresh interpreter without pulling
+    # in any GUI, plotting or windowing dependency.
+    core_probe = (
+        "import sys, importlib\n"
+        "for name in ('imtp', 'imtp.io', 'imtp.processing', 'imtp.models'):\n"
+        "    importlib.import_module(name)\n"
+        "bad = [m for m in sys.modules if m.startswith('imtp.gui')]\n"
+        "assert not bad, f'core pulled in GUI: {bad}'\n"
+        "assert 'PySimpleGUI' not in sys.modules, 'core pulled in PySimpleGUI'\n"
+        "assert 'matplotlib' not in sys.modules, 'core pulled in matplotlib'\n"
+    )
+    env = dict(os.environ, PYTHONPATH=str(REPO / "src"))
+    result = subprocess.run([sys.executable, "-c", core_probe], env=env,
+                            capture_output=True, text=True)
+    if result.returncode != 0:
+        failures.append("core headless-import guard failed: "
+                        + result.stderr.strip())
     if failures:
         print(f"FAIL — {len(failures)} difference(s):")
         for f in failures:
