@@ -332,29 +332,11 @@ def run_pipeline(data, weigh_start, onset_time):
     }
 
 
-def _export_row(peak_force, f50, f100, f150, f200, f250):
-    """The monolith's results-DataFrame build + rounding (verbatim)."""
-    force_vars = {
-        'Participant': ['GOLDEN'],
-        'Session': ['G0'],
-        'Trial': ['1'],
-        'Variable': ['Net Force'],
-        'Peak': [peak_force],
-        '50 ms': [f50],
-        '100 ms': [f100],
-        '150 ms': [f150],
-        '200 ms': [f200],
-        '250 ms': [f250],
-    }
-    df3 = pd.DataFrame.from_dict(force_vars)
-    df3 = np.round(df3, decimals=1)
-    return {k: str(v) for k, v in df3.iloc[0].to_dict().items()}
-
-
 def run_package_pipeline(data, weigh_start, onset_time):
     """Same pipeline as run_pipeline, but through the extracted imtp
     package. This is the system under test from Phase 1 onward: it must
     reproduce the frozen goldens exactly."""
+    from imtp.export.csv_export import results_frame
     from imtp.io import read_force_csv  # noqa: F401  (import sanity)
     from imtp.models import IMTPResults, IMTPTrial
     from imtp.processing.bodyweight import calculate_bodyweight
@@ -363,7 +345,8 @@ def run_package_pipeline(data, weigh_start, onset_time):
     from imtp.processing.onset import select_onset, trim_to_onset
     from imtp.processing.metrics import calculate_force_metrics
 
-    trial = IMTPTrial(data=data, system='golden')
+    trial = IMTPTrial(data=data, system='golden',
+                      participant='GOLDEN', session='G0', trial='1')
     bw = calculate_bodyweight(trial.data, weigh_start)
     df = bw['df']
     countermovement = detect_countermovement(df, bw['weight'])
@@ -374,6 +357,7 @@ def run_package_pipeline(data, weigh_start, onset_time):
     if not isinstance(m, IMTPResults):
         raise TypeError(f"calculate_force_metrics returned {type(m)}, "
                         "expected IMTPResults")
+    export_df = results_frame(trial, m)
     return {
         "trim_idx": bw['trim_idx'],
         "weight": float(bw['weight']),
@@ -393,8 +377,7 @@ def run_package_pipeline(data, weigh_start, onset_time):
         "f150": float(m.f150),
         "f200": float(m.f200),
         "f250": float(m.f250),
-        "export_row": _export_row(m.peak_force, m.f50, m.f100,
-                                  m.f150, m.f200, m.f250),
+        "export_row": {k: str(v) for k, v in export_df.iloc[0].to_dict().items()},
     }
 
 
@@ -412,14 +395,14 @@ def _read_all(monolith=None):
 
 
 def generate():
-    monolith = load_monolith()
+    from imtp.processing.bodyweight import WEIGH_WINDOW_S as pkg_weigh_window
     global WEIGH_WINDOW_S
-    WEIGH_WINDOW_S = monolith.WEIGH_WINDOW_S
+    WEIGH_WINDOW_S = pkg_weigh_window
 
     make_fixtures()
 
     results = {"trials": {}}
-    for case_id, path, data, system in _read_all(monolith):
+    for case_id, path, data, system in _read_all():
         entry = {
             "source": str(path.relative_to(REPO)),
             "system": system,
@@ -435,7 +418,7 @@ def generate():
     results["meta"] = {
         "monolith_sha256": hashlib.sha256(
             SCRIPT.read_bytes()).hexdigest(),
-        "weigh_window_s": float(monolith.WEIGH_WINDOW_S),
+        "weigh_window_s": float(pkg_weigh_window),
         "python": sys.version.split()[0],
         "pandas": pd.__version__,
         "numpy": np.__version__,
@@ -471,12 +454,16 @@ def check():
         print("NOTE: monolith file differs from the one that generated the "
               "golden file (expected during refactor phases).")
     monolith = load_monolith()
+    from imtp.processing.bodyweight import WEIGH_WINDOW_S as pkg_weigh_window
     global WEIGH_WINDOW_S
-    WEIGH_WINDOW_S = monolith.WEIGH_WINDOW_S
+    WEIGH_WINDOW_S = pkg_weigh_window
 
     failures = []
     n = 0
-    # The monolith must delegate every calculation to the package.
+    # Phase 4: the monolith delegates orchestration to the analyst
+    # workflow, and the workflow delegates every calculation, GUI
+    # interaction and export to the package.
+    import imtp.export.csv_export as csv_mod
     import imtp.io
     import imtp.processing.bodyweight as bw_mod
     import imtp.processing.countermovement as cm_mod
@@ -485,27 +472,32 @@ def check():
     import imtp.gui.onset_selector as onset_gui
     import imtp.gui.participant_dialog as pdlg_gui
     import imtp.gui.weighing_selector as weigh_gui
+    import imtp.workflows.analyst as wf
     from imtp.models.trial import default_trial_label
     guards = {
-        "load_trial": (monolith.load_trial, imtp.io.load_trial),
-        "calculate_bodyweight": (monolith.calculate_bodyweight,
-                                 bw_mod.calculate_bodyweight),
-        "detect_countermovement": (monolith.detect_countermovement,
-                                  cm_mod.detect_countermovement),
-        "up_to_peak": (monolith.up_to_peak, cm_mod.up_to_peak),
-        "select_onset": (monolith.select_onset, onset_mod.select_onset),
-        "trim_to_onset": (monolith.trim_to_onset, onset_mod.trim_to_onset),
-        "calculate_force_metrics": (monolith.calculate_force_metrics,
-                                    metrics_mod.calculate_force_metrics),
-        "enter_metadata": (monolith.enter_metadata, pdlg_gui.enter_metadata),
-        "select_weighing_start": (monolith.select_weighing_start,
-                                  weigh_gui.select_weighing_start),
-        "select_onset_time": (monolith.select_onset_time,
-                              onset_gui.select_onset_time),
+        "monolith.run": (monolith.run, wf.run),
+        "analyst.load_trial": (wf.load_trial, imtp.io.load_trial),
+        "analyst.enter_metadata": (wf.enter_metadata,
+                                   pdlg_gui.enter_metadata),
+        "analyst.select_weighing_start": (wf.select_weighing_start,
+                                          weigh_gui.select_weighing_start),
+        "analyst.calculate_bodyweight": (wf.calculate_bodyweight,
+                                         bw_mod.calculate_bodyweight),
+        "analyst.detect_countermovement": (wf.detect_countermovement,
+                                           cm_mod.detect_countermovement),
+        "analyst.up_to_peak": (wf.up_to_peak, cm_mod.up_to_peak),
+        "analyst.select_onset_time": (wf.select_onset_time,
+                                      onset_gui.select_onset_time),
+        "analyst.select_onset": (wf.select_onset, onset_mod.select_onset),
+        "analyst.trim_to_onset": (wf.trim_to_onset, onset_mod.trim_to_onset),
+        "analyst.calculate_force_metrics": (wf.calculate_force_metrics,
+                                            metrics_mod.calculate_force_metrics),
+        "analyst.results_frame": (wf.results_frame, csv_mod.results_frame),
+        "analyst.append_csv": (wf.append_csv, csv_mod.append_csv),
     }
-    for name, (mono_fn, pkg_fn) in guards.items():
-        if mono_fn is not pkg_fn:
-            failures.append(f"monolith.{name} does not delegate to the package")
+    for name, (caller_fn, pkg_fn) in guards.items():
+        if caller_fn is not pkg_fn:
+            failures.append(f"{name} does not delegate to the package")
     for case_id, path, data, system in _read_all():
         expected = saved["trials"][case_id]
         actual = {
@@ -537,11 +529,13 @@ def check():
         n += 1
 
     # Phase 3 architecture guard: the core package (io, processing,
-    # models) must be importable in a fresh interpreter without pulling
-    # in any GUI, plotting or windowing dependency.
+    # models, export, non-GUI workflows) must be importable in a fresh
+    # interpreter without pulling in any GUI, plotting or windowing
+    # dependency.
     core_probe = (
         "import sys, importlib\n"
-        "for name in ('imtp', 'imtp.io', 'imtp.processing', 'imtp.models'):\n"
+        "for name in ('imtp', 'imtp.io', 'imtp.processing', 'imtp.models',\n"
+        "             'imtp.export', 'imtp.workflows.batch'):\n"
         "    importlib.import_module(name)\n"
         "bad = [m for m in sys.modules if m.startswith('imtp.gui')]\n"
         "assert not bad, f'core pulled in GUI: {bad}'\n"
@@ -554,6 +548,30 @@ def check():
     if result.returncode != 0:
         failures.append("core headless-import guard failed: "
                         + result.stderr.strip())
+
+    # Phase 4: append_csv semantics must match the original script
+    # exactly (header written only when the file is missing or empty).
+    import tempfile
+    from imtp.export import append_csv
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            results_path = Path(tmp) / "results.csv"
+            frame = pd.DataFrame({"A": [1.0], "B": ["x"]})
+            append_csv(results_path, frame)      # new file -> header
+            first = results_path.read_text()
+            append_csv(results_path, frame)      # existing file -> no header
+            second = results_path.read_text()
+            results_path.write_text("")          # empty file -> header
+            append_csv(results_path, frame)
+            third = results_path.read_text()
+        if first != "A,B\n1.0,x\n":
+            failures.append(f"append_csv new-file header wrong: {first!r}")
+        if second != "A,B\n1.0,x\n1.0,x\n":
+            failures.append(f"append_csv existing-file repeat wrong: {second!r}")
+        if third != "A,B\n1.0,x\n":
+            failures.append(f"append_csv empty-file header wrong: {third!r}")
+    except Exception as e:
+        failures.append(f"append_csv semantics check failed: {e}")
     if failures:
         print(f"FAIL — {len(failures)} difference(s):")
         for f in failures:
