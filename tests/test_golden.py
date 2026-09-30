@@ -50,11 +50,11 @@ def test_monolith_delegates_to_workflow():
 def test_core_imports_headless():
     """Architecture guard: importing io, processing, models and export
     in a fresh interpreter must not pull in any GUI, plotting or
-    windowing dependency (the batch/automation use case)."""
+    windowing dependency (programmatic use without the GUI)."""
     probe = (
         "import sys, importlib\n"
         "for name in ('imtp', 'imtp.io', 'imtp.processing', 'imtp.models',\n"
-        "             'imtp.export', 'imtp.workflows.batch'):\n"
+        "             'imtp.export'):\n"
         "    importlib.import_module(name)\n"
         "bad = [m for m in sys.modules if m.startswith('imtp.gui')]\n"
         "assert not bad, f'core pulled in GUI: {bad}'\n"

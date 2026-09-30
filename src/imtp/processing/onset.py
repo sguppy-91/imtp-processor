@@ -1,8 +1,10 @@
 """Onset selection utilities.
 
-Currently only the resolution of an analyst-chosen (manual) onset time.
-Designed for future expansion: automatic_onset(), threshold_onset(),
-sd_method_onset().
+Onset identification is manual by design: the analyst visually
+identifies force onset for every trial — the reference methodology for
+force-onset identification (Guppy et al., 2024). This module only
+resolves an analyst-chosen onset time to sample indices and trims the
+force-time curve from it; no automatic onset detection is planned.
 """
 import numpy as np
 

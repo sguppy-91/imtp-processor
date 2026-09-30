@@ -53,8 +53,8 @@ def analyse_trial(force_data, bodyweight, onset_time):
             weighing phase, i.e. for any real pull.
         bodyweight: estimated bodyweight in newtons (e.g. the ``weight``
             from calculate_bodyweight).
-        onset_time: chosen force onset in seconds (manual or, in the
-            future, automatic).
+        onset_time: force onset in seconds, identified manually by the
+            analyst (the reference methodology, by design).
 
     Returns:
         IMTPResults with peak_force and f50/f100/f150/f200/f250 (net

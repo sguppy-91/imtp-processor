@@ -9,6 +9,12 @@ Dynamics, and best-guess generic layouts), normalises them to canonical
 selection, countermovement screening, and onset selection before
 computing force-time variables and appending them to a results CSV.
 
+Force onset is identified manually by the analyst in every trial. This
+is deliberate: manual onset identification is the reference ("gold
+standard") methodology for the IMTP (Guppy et al., 2024), so the
+workflow is built around analyst inspection of each force-time curve.
+No batch or automatic onset-detection modes are planned.
+
 ## Features
 
 - **Plate-agnostic import.** Exports are sniffed and mapped to
@@ -93,9 +99,11 @@ results = analyse_trial(bw["df"], bw["weight"], onset_time=3.42)
 print(results.peak_force, results.f250)
 ```
 
-This is the interface for batch processing, automatic onset detection
-and other tooling; everything outside `imtp`'s `__all__` is internal
-and may change without notice.
+This interface supports programmatic use of the analysis engine —
+notebooks, scripted re-analysis, quality control — without the GUI.
+Onset identification stays manual by design (see above): `onset_time`
+is always an analyst-provided input. Everything outside `imtp`'s
+`__all__` is internal and may change without notice.
 
 ## Package layout
 
@@ -106,8 +114,7 @@ and may change without notice.
 - `imtp.models` — `IMTPTrial` and `IMTPResults` objects
 - `imtp.export` — CSV output
 - `imtp.gui` — analyst interaction widgets (macOS-only)
-- `imtp.workflows` — orchestration: the analyst GUI workflow today, a
-  no-GUI batch workflow in future
+- `imtp.workflows` — orchestration: the analyst GUI workflow
 - `imtp.cli` — the `imtp` command
 
 Scientific calculations never depend on the GUI: the core package

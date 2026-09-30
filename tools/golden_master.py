@@ -531,13 +531,12 @@ def check():
         n += 1
 
     # Phase 3 architecture guard: the core package (io, processing,
-    # models, export, non-GUI workflows) must be importable in a fresh
-    # interpreter without pulling in any GUI, plotting or windowing
-    # dependency.
+    # models, export) must be importable in a fresh interpreter without
+    # pulling in any GUI, plotting or windowing dependency.
     core_probe = (
         "import sys, importlib\n"
         "for name in ('imtp', 'imtp.io', 'imtp.processing', 'imtp.models',\n"
-        "             'imtp.export', 'imtp.workflows.batch'):\n"
+        "             'imtp.export'):\n"
         "    importlib.import_module(name)\n"
         "bad = [m for m in sys.modules if m.startswith('imtp.gui')]\n"
         "assert not bad, f'core pulled in GUI: {bad}'\n"
