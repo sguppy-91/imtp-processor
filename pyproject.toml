@@ -38,6 +38,9 @@ test = [
 [project.urls]
 Homepage = "https://github.com/sguppy-91/IMTP_Analysis_Script"
 
+[project.scripts]
+imtp = "imtp.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

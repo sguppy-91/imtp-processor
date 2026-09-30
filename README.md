@@ -54,8 +54,12 @@ pip install pandas numpy matplotlib PySimpleGUI
 
 ## Usage
 
+With the package installed, either command launches the analyst
+workflow:
+
 ```bash
-python IMTP_Analysis_Script.py
+python IMTP_Analysis_Script.py   # also works from a fresh clone
+imtp                             # installed entry point
 ```
 
 1. Choose (or name) the results CSV to append to.
@@ -65,6 +69,50 @@ python IMTP_Analysis_Script.py
    line to the force onset and click **Save**.
 4. Variables are displayed and appended to the results CSV; cancel the
    file dialog to finish.
+
+## Python API
+
+The analysis engine is usable without the GUI. The documented public
+API is:
+
+- `read_force_csv`, `load_trial` — plate-agnostic CSV import
+- `calculate_bodyweight` — bodyweight from the weighing phase
+- `detect_countermovement` — countermovement screening
+- `analyse_trial` — one-call analysis with a known bodyweight and onset
+- `calculate_force_metrics` — force metrics from onset-trimmed data
+- `IMTPTrial`, `IMTPResults` — the trial and results objects
+
+```python
+from imtp import load_trial, calculate_bodyweight, analyse_trial
+
+trial, = load_trial("trial.csv")
+trial.participant, trial.session, trial.trial = "P001", "T1", "1"
+
+bw = calculate_bodyweight(trial.data, weigh_start=1.0)
+results = analyse_trial(bw["df"], bw["weight"], onset_time=3.42)
+print(results.peak_force, results.f250)
+```
+
+This is the interface for batch processing, automatic onset detection
+and other tooling; everything outside `imtp`'s `__all__` is internal
+and may change without notice.
+
+## Package layout
+
+- `imtp.io` — force-plate CSV import (PASCO, Hawkin Dynamics, generic
+  fallback)
+- `imtp.processing` — bodyweight, countermovement screening, onset
+  utilities, force metrics (no GUI, no import, no export code)
+- `imtp.models` — `IMTPTrial` and `IMTPResults` objects
+- `imtp.export` — CSV output
+- `imtp.gui` — analyst interaction widgets (macOS-only)
+- `imtp.workflows` — orchestration: the analyst GUI workflow today, a
+  no-GUI batch workflow in future
+- `imtp.cli` — the `imtp` command
+
+Scientific calculations never depend on the GUI: the core package
+imports cleanly without matplotlib or PySimpleGUI, which is enforced by
+the test suite.
 
 ## Testing
 
