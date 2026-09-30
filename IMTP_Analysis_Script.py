@@ -15,7 +15,7 @@ sg.theme('DarkTeal6')
 # before the project becomes pip-installable (a later refactor phase).
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'src'))
 
-from imtp.io import read_force_csv
+from imtp.io import load_trial
 from imtp.processing.bodyweight import (WEIGH_WINDOW_S,
                                          calculate_bodyweight)
 from imtp.processing.countermovement import (detect_countermovement,
@@ -46,21 +46,22 @@ def main():
         if not csv_file:
             break
 
-        # Read the selected CSV file into canonical Time/Fz trials
-        # (multi-run exports yield one trial per run)
+        # Read the selected CSV file into trials (multi-run exports
+        # yield one trial per run)
         try:
-            trials = read_force_csv(csv_file)
+            trials = load_trial(csv_file)
         except Exception as e:
             sg.popup_error(f"Error reading CSV file: {str(e)}")
             continue
 
-        for data, system in trials:
+        for trial_obj in trials:
             # Per-trial error handling: one bad trial (bad click, odd
             # data) closes any open plots and skips to the next trial
             # instead of killing the whole session.
             try:
+                data = trial_obj.data
+                system = trial_obj.system
                 print(f"Imported {system} data: {csv_file}")
-                trial_default = system.split('Run #')[-1] if 'Run #' in system else ''
 
                 # Enter participant metadata for this trial
                 participant = sg.popup_get_text('Enter participant code (e.g. P001)', title='Participant',
@@ -68,15 +69,18 @@ def main():
                 if participant is None:
                     break
                 last_participant = participant
+                trial_obj.participant = participant
                 session = sg.popup_get_text('Enter session (e.g. T1)', title='Session',
                                             default_text=last_session)
                 if session is None:
                     break
                 last_session = session
+                trial_obj.session = session
                 trial = sg.popup_get_text('Enter trial number (e.g. 1)', title='Trial',
-                                          default_text=trial_default)
+                                          default_text=trial_obj.trial)
                 if trial is None:
                     break
+                trial_obj.trial = trial
 
                 # Create Graph to be Inspected — click the start of the weighing phase
                 plt.plot(data.Time, data.Fz)
@@ -175,13 +179,13 @@ def main():
                 df2 = trim_to_onset(df1, start)
 
                 # Calculating force-time variables
-                m = calculate_force_metrics(df2, Weight)
-                Peak_Force = m['peak_force']
-                F50 = m['f50']
-                F100 = m['f100']
-                F150 = m['f150']
-                F200 = m['f200']
-                F250 = m['f250']
+                results_obj = calculate_force_metrics(df2, Weight)
+                Peak_Force = results_obj.peak_force
+                F50 = results_obj.f50
+                F100 = results_obj.f100
+                F150 = results_obj.f150
+                F200 = results_obj.f200
+                F250 = results_obj.f250
 
                 # Create DataFrame for Force Variables
                 force_vars = {

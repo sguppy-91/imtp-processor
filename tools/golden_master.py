@@ -220,6 +220,11 @@ def collect_sources():
     return sources
 
 
+def trial_idx_of(case_id):
+    """Trial index (within its fixture file) for a golden case-id."""
+    return collect_sources()[case_id][1]
+
+
 # ---------------------------------------------------------------------------
 # Verbatim calculation pipeline (frozen copy of v1-monolith main())
 # ---------------------------------------------------------------------------
@@ -349,19 +354,24 @@ def run_package_pipeline(data, weigh_start, onset_time):
     package. This is the system under test from Phase 1 onward: it must
     reproduce the frozen goldens exactly."""
     from imtp.io import read_force_csv  # noqa: F401  (import sanity)
+    from imtp.models import IMTPResults, IMTPTrial
     from imtp.processing.bodyweight import calculate_bodyweight
     from imtp.processing.countermovement import (detect_countermovement,
                                                  up_to_peak)
     from imtp.processing.onset import select_onset, trim_to_onset
     from imtp.processing.metrics import calculate_force_metrics
 
-    bw = calculate_bodyweight(data, weigh_start)
+    trial = IMTPTrial(data=data, system='golden')
+    bw = calculate_bodyweight(trial.data, weigh_start)
     df = bw['df']
     countermovement = detect_countermovement(df, bw['weight'])
     df1 = up_to_peak(df)
-    onset_Fz, start = select_onset(data, df1, onset_time)
+    onset_Fz, start = select_onset(trial.data, df1, onset_time)
     df2 = trim_to_onset(df1, start)
     m = calculate_force_metrics(df2, bw['weight'])
+    if not isinstance(m, IMTPResults):
+        raise TypeError(f"calculate_force_metrics returned {type(m)}, "
+                        "expected IMTPResults")
     return {
         "trim_idx": bw['trim_idx'],
         "weight": float(bw['weight']),
@@ -375,14 +385,14 @@ def run_package_pipeline(data, weigh_start, onset_time):
         "onset_fz": float(onset_Fz),
         "start_index": int(start),
         "n_df2": int(len(df2)),
-        "peak_force": float(m['peak_force']),
-        "f50": float(m['f50']),
-        "f100": float(m['f100']),
-        "f150": float(m['f150']),
-        "f200": float(m['f200']),
-        "f250": float(m['f250']),
-        "export_row": _export_row(m['peak_force'], m['f50'], m['f100'],
-                                  m['f150'], m['f200'], m['f250']),
+        "peak_force": float(m.peak_force),
+        "f50": float(m.f50),
+        "f100": float(m.f100),
+        "f150": float(m.f150),
+        "f200": float(m.f200),
+        "f250": float(m.f250),
+        "export_row": _export_row(m.peak_force, m.f50, m.f100,
+                                  m.f150, m.f200, m.f250),
     }
 
 
@@ -390,9 +400,11 @@ def run_package_pipeline(data, weigh_start, onset_time):
 # Generate / check
 # ---------------------------------------------------------------------------
 
-def _read_all(monolith):
+def _read_all(monolith=None):
+    """Yield case-id, path, data, system using the package import layer."""
+    from imtp.io import read_force_csv
     for case_id, (path, trial_idx) in collect_sources().items():
-        trials = monolith.read_force_csv(path)
+        trials = read_force_csv(path)
         data, system = trials[trial_idx]
         yield case_id, path, data, system
 
@@ -462,11 +474,29 @@ def check():
 
     failures = []
     n = 0
+    # The monolith must delegate every calculation to the package.
     import imtp.io
-    if monolith.read_force_csv is not imtp.io.read_force_csv:
-        failures.append("monolith.read_force_csv is not imtp.io.read_force_csv "
-                        "(the monolith must delegate, not duplicate)")
-    for case_id, path, data, system in _read_all(monolith):
+    import imtp.processing.bodyweight as bw_mod
+    import imtp.processing.countermovement as cm_mod
+    import imtp.processing.onset as onset_mod
+    import imtp.processing.metrics as metrics_mod
+    from imtp.models.trial import default_trial_label
+    guards = {
+        "load_trial": (monolith.load_trial, imtp.io.load_trial),
+        "calculate_bodyweight": (monolith.calculate_bodyweight,
+                                 bw_mod.calculate_bodyweight),
+        "detect_countermovement": (monolith.detect_countermovement,
+                                  cm_mod.detect_countermovement),
+        "up_to_peak": (monolith.up_to_peak, cm_mod.up_to_peak),
+        "select_onset": (monolith.select_onset, onset_mod.select_onset),
+        "trim_to_onset": (monolith.trim_to_onset, onset_mod.trim_to_onset),
+        "calculate_force_metrics": (monolith.calculate_force_metrics,
+                                    metrics_mod.calculate_force_metrics),
+    }
+    for name, (mono_fn, pkg_fn) in guards.items():
+        if mono_fn is not pkg_fn:
+            failures.append(f"monolith.{name} does not delegate to the package")
+    for case_id, path, data, system in _read_all():
         expected = saved["trials"][case_id]
         actual = {
             "source": str(path.relative_to(REPO)),
@@ -483,6 +513,17 @@ def check():
         # the frozen goldens.
         pkg = run_package_pipeline(data, **PARAMS[case_id])
         failures += compare(f"{case_id} [package]", expected["pipeline"], pkg)
+        # Phase 2: IMTPTrial loading must match the import layer and the
+        # monolith's original trial-default rule exactly.
+        expected_default = (system.split('Run #')[-1]
+                            if 'Run #' in system else '')
+        if default_trial_label(system) != expected_default:
+            failures.append(f"{case_id}: default_trial_label mismatch")
+        pkg_trial = imtp.io.load_trial(path)[trial_idx_of(case_id)]
+        if (pkg_trial.system != system
+                or pkg_trial.trial != expected_default
+                or data_fingerprint(pkg_trial.data) != expected["fingerprint"]):
+            failures.append(f"{case_id}: load_trial mismatch")
         n += 1
     if failures:
         print(f"FAIL — {len(failures)} difference(s):")

@@ -7,6 +7,7 @@ change to be read. Everything downstream only uses Time and Fz.
 """
 import pandas as pd
 
+from ..models.trial import IMTPTrial, default_trial_label
 from . import generic, hawkin, pasco
 
 
@@ -54,3 +55,15 @@ def read_force_csv(csv_file):
 
     raise ValueError(
         f'Could not identify time and force columns. Found: {columns}')
+
+
+def load_trial(csv_file):
+    """Read a CSV export into IMTPTrial objects.
+
+    Metadata (participant/session) is left empty for the workflow layer
+    to fill in; trial defaults to the run number for multi-run PASCO
+    exports (preserving the original script's default).
+    """
+    return [IMTPTrial(data=data, system=system,
+                      trial=default_trial_label(system))
+            for data, system in read_force_csv(csv_file)]
