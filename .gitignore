@@ -1,14 +1,22 @@
-# Python
+# Byte-compiled / cache
 __pycache__/
 *.py[cod]
 
-# Packaging
+# Packaging / install artifacts
 *.egg-info/
 build/
 dist/
 
-# Tooling caches
-.pytest_cache/
+# Virtual environments
+.venv/
+venv/
 
-# macOS
+# Environment / secrets
+.env
+
+# OS files
 .DS_Store
+
+# Test / tooling caches
+.pytest_cache/
+.coverage
