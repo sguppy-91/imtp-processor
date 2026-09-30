@@ -12,10 +12,10 @@ from . import __version__
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        prog="imtp",
+        prog="imtp-gui",
         description="Isometric mid-thigh pull (IMTP) force-time analysis")
     parser.add_argument("--version", action="version",
-                        version=f"imtp {__version__}")
+                        version=f"imtp-gui {__version__}")
     parser.parse_args(argv)
 
     # Default behaviour: the analyst-in-the-loop GUI workflow. Imported

@@ -2,13 +2,13 @@ cff-version: 1.2.0
 message: >-
   If you use this software, please cite it using the metadata
   in this file, together with the methodological references below.
-title: IMTP_Analysis_Script
+title: imtp-processor
 type: software
-version: 1.0.0
+version: 1.1.0
 authors:
   - family-names: Guppy
     given-names: Stuart N.
-repository-code: 'https://github.com/sguppy-91/IMTP_Analysis_Script'
+repository-code: 'https://github.com/sguppy-91/imtp-processor'
 license: MIT
 date-released: '2026-09-28'
 references:

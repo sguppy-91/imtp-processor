@@ -19,7 +19,7 @@ def test_version_flag(capsys):
     with pytest.raises(SystemExit) as exc:
         main(["--version"])
     assert exc.value.code == 0
-    assert "imtp 1.0.0" in capsys.readouterr().out
+    assert "imtp-gui 1.1.0" in capsys.readouterr().out
 
 
 def test_help_flag(capsys):
@@ -54,9 +54,9 @@ def test_cli_works_headless():
 
 
 def test_installed_entry_point_version():
-    """The installed `imtp` command (pip install -e .) reports its
+    """The installed `imtp-gui` command (pip install -e .) reports its
     version."""
-    result = subprocess.run(["imtp", "--version"],
+    result = subprocess.run(["imtp-gui", "--version"],
                             capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
-    assert "imtp 1.0.0" in result.stdout
+    assert "imtp-gui 1.1.0" in result.stdout

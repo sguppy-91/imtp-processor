@@ -23,7 +23,7 @@ from .processing.countermovement import (detect_countermovement,
 from .processing.metrics import calculate_force_metrics
 from .processing.onset import select_onset, trim_to_onset
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 __all__ = [
     "IMTPResults",

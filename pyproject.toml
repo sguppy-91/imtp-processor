@@ -3,8 +3,8 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "imtp"
-version = "1.0.0"
+name = "imtp-processor"
+version = "1.1.0"
 description = "Isometric mid-thigh pull (IMTP) force-time analysis"
 readme = "README.md"
 license = "MIT"
@@ -36,10 +36,10 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/sguppy-91/IMTP_Analysis_Script"
+Homepage = "https://github.com/sguppy-91/imtp-processor"
 
 [project.scripts]
-imtp = "imtp.cli:main"
+imtp-gui = "imtp.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

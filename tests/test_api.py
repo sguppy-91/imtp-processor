@@ -31,7 +31,7 @@ def test_public_api_surface():
     assert set(imtp.__all__) == EXPECTED_SURFACE
     for name in imtp.__all__:
         assert hasattr(imtp, name), name
-    assert imtp.__version__ == "1.0.0"
+    assert imtp.__version__ == "1.1.0"
 
 
 @pytest.mark.parametrize("case_id", sorted(gm.PARAMS))

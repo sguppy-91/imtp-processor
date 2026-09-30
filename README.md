@@ -1,4 +1,4 @@
-# IMTP Analysis Script
+# imtp-processor
 
 Isometric mid-thigh pull (IMTP) force-time analysis with an
 analyst-in-the-loop GUI workflow.
@@ -65,7 +65,7 @@ workflow:
 
 ```bash
 python IMTP_Analysis_Script.py   # also works from a fresh clone
-imtp                             # installed entry point
+imtp-gui                         # installed entry point
 ```
 
 1. Choose (or name) the results CSV to append to.
