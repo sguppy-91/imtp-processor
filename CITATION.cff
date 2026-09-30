@@ -4,6 +4,7 @@ message: >-
   in this file, together with the methodological references below.
 title: IMTP_Analysis_Script
 type: software
+version: 1.0.0
 authors:
   - family-names: Guppy
     given-names: Stuart N.

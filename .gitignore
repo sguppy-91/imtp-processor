@@ -1,4 +1,14 @@
-.venv/
+# Python
 __pycache__/
 *.py[cod]
+
+# Packaging
+*.egg-info/
+build/
+dist/
+
+# Tooling caches
+.pytest_cache/
+
+# macOS
 .DS_Store

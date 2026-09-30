@@ -38,7 +38,15 @@ double as windowed RFD values.
 ## Requirements
 
 - Python 3
-- pandas, numpy, matplotlib, PySimpleGUI
+- pandas, numpy (core analysis); matplotlib, PySimpleGUI (GUI workflow)
+
+Install the package (recommended):
+
+```bash
+pip install -e ".[gui]"
+```
+
+or install the dependencies directly:
 
 ```bash
 pip install pandas numpy matplotlib PySimpleGUI
