@@ -64,7 +64,6 @@ With the package installed, either command launches the analyst
 workflow:
 
 ```bash
-python IMTP_Analysis_Script.py   # also works from a fresh clone
 imtp-gui                         # installed entry point
 ```
 
