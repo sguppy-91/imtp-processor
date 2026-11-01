@@ -15,6 +15,11 @@ standard") methodology for the IMTP (Guppy et al., 2024), so the
 workflow is built around analyst inspection of each force-time curve.
 No batch or automatic onset-detection modes are planned.
 
+## Status
+In development. Still to come:
+- Audit trail within exported CSV file
+- methods.md documentation outlining methodological choices and justifications
+
 ## Features
 
 - **Plate-agnostic import.** Exports are sniffed and mapped to
@@ -60,12 +65,18 @@ pip install pandas numpy matplotlib PySimpleGUI
 
 ## Usage
 
-With the package installed, either command launches the analyst
-workflow:
+Launch the interactive workflow (file selection, weighing window inspection, force onset selection):
 
 ```bash
 imtp-gui                         # installed entry point
 ```
+
+Or double-click `scripts/launch-imtp-gui.command` (a copy can live
+anywhere - the Desktop is a good spot). A copied launcher uses the last
+project location or asks you to choose the project folder and remembers
+your choice. If the project moves, it asks again. The launcher uses the
+project's `.venv`; create it with `python3 -m venv .venv`, then install
+with `.venv/bin/python -m pip install -e ".[gui]"` from the project folder.
 
 1. Choose (or name) the results CSV to append to.
 2. Select a data CSV. Multi-run PASCO exports load one trial per run.
@@ -154,8 +165,7 @@ Investigator Grant.
 
 ## Development
 
-This software was developed with assistance from AI coding tools,
-including the GLM-5.3 large language model (Z.ai, China; hosted by Mistral AI, France) and the OpenCode CLI coding agent (version 2.0.18).
+This software was developed with the assistance of the GLM 5.3 large language model (Z.ai, China; hosted by Mistral AI, France).
 
 AI assistance was used for software design discussion, code generation
 and refactoring, testing, documentation, and debugging. The analytical
