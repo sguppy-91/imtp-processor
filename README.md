@@ -1,179 +1,97 @@
 # imtp-processor
 
-Isometric mid-thigh pull (IMTP) force-time analysis with an
-analyst-in-the-loop GUI workflow.
+## Overview
 
-Reads force-plate CSV exports from multiple systems (PASCO, Hawkin
-Dynamics, and best-guess generic layouts), normalises them to canonical
-`Time`/`Fz` columns, and steps the analyst through weighing-phase
-selection, countermovement screening, and onset selection before
-computing force-time variables and appending them to a results CSV.
+`imtp-processor` is a Python package for analysing isometric mid-thigh pull (IMTP) force-time data using an analyst-in-the-loop workflow.
 
-Force onset is identified manually by the analyst in every trial. This
-is deliberate: manual onset identification is the reference ("gold
-standard") methodology for the IMTP (Guppy et al., 2024), so the
-workflow is built around analyst inspection of each force-time curve.
-No batch or automatic onset-detection modes are planned.
+The package imports force-plate CSV files from multiple systems, standardises the data into a common format, and guides the analyst through weighing-phase selection, countermovement screening and force-onset identification. It then calculates commonly reported force-time variables and appends the results to a CSV file.
+
+Version 1.0.0 uses manual force-onset identification throughout the analysis workflow. The methodological rationale for this approach and other analytical decisions is described in Method.
 
 ## Status
-In development. Still to come:
-- Audit trail within exported CSV file
-- methods.md documentation outlining methodological choices and justifications
+
+`imtp-processor` v1.0.0 implements the manual force-onset analysis workflow and is the current stable release.
+
+Development is ongoing. Future versions will extend the package with automated force-onset detection methods and other refinements while retaining the core manual analysis workflow.
 
 ## Features
 
-- **Plate-agnostic import.** Exports are sniffed and mapped to
-  `Time`/`Fz`: multi-run PASCO exports (one trial per `Run #N`,
-  metadata-preamble tolerant, sums left/right plate channels when no
-  combined `Fz` column exists), Hawkin Dynamics, and a generic fallback
-  for unknown systems.
-- **Analyst-in-the-loop.** Click the start of the weighing phase, then
-  drag a line to the force onset and click **Save** — no manual curve
-  measurements needed.
-- **Countermovement screening.** Warns when force dips more than 50 N
-  below body weight before peak force.
-- **Sampling-rate independent.** Body weight is averaged over a 1 s
-  weighing window by *time*, so results are identical at any sampling
-  rate.
-- **Results accumulate.** Variables are appended to a running results
-  CSV, one row per trial.
+- **Multi-system force-plate import**. Imports CSV data from PASCO and Hawkin Dynamics systems, with a generic fallback for other CSV layouts.
+- **Analyst-in-the-loop workflow**. Guides the analyst through weighing-phase selection, countermovement screening, and force-onset identification before calculating force-time variables.
+- **Manual force-onset identification**. Version 1.0.0 allows the analyst to identify force onset directly from the force-time curve.
+- **Countermovement screening**. Screens trials for a countermovement before force onset and alerts the analyst when one is detected.
+- **Sampling-rate independent processing**. Time-based analytical procedures are applied consistently across different sampling frequencies.
+- **Incremental results export**. Completed trials are appended to a results CSV, allowing multiple trials to be processed within the same analysis session.
 
-## Metrics
+## Installation
 
-Net force (above body weight) is reported at 50, 100, 150, 200, and
-250 ms after onset, plus peak net force. Net force at a fixed time
-after onset is numerically identical to average rate of force
-development over the 0–t window (N ÷ t), so the fixed-time columns
-double as windowed RFD values.
+`imtp-processor` requires Python 3.
 
-## Requirements
+Clone the repository and create a virtual environment:
 
-- Python 3
-- pandas, numpy (core analysis); matplotlib, PySimpleGUI (GUI workflow)
+```bash
+git clone https://github.com/sguppy-91/imtp-processor.git
+cd imtp-processor
+python3 -m venv .venv
+source .venv/bin/activate
+```
 
-Install the package (recommended):
+Install the package with the dependencies required for the graphical interface:
 
 ```bash
 pip install -e ".[gui]"
 ```
 
-or install the dependencies directly:
-
-```bash
-pip install pandas numpy matplotlib PySimpleGUI
-```
-
 ## Usage
 
-Launch the interactive workflow (file selection, weighing window inspection, force onset selection):
+Launch the interactive window from the command line:
 
 ```bash
 imtp-gui                         # installed entry point
 ```
 
-Or double-click `scripts/launch-imtp-gui.command` (a copy can live
-anywhere - the Desktop is a good spot). A copied launcher uses the last
-project location or asks you to choose the project folder and remembers
-your choice. If the project moves, it asks again. The launcher uses the
-project's `.venv`; create it with `python3 -m venv .venv`, then install
-with `.venv/bin/python -m pip install -e ".[gui]"` from the project folder.
-
-1. Choose (or name) the results CSV to append to.
-2. Select a data CSV. Multi-run PASCO exports load one trial per run.
-3. For each trial: enter participant/session/trial, click the start of
-   the weighing phase, confirm the countermovement screen, drag the red
-   line to the force onset and click **Save**.
-4. Variables are displayed and appended to the results CSV; cancel the
-   file dialog to finish.
-
-## Python API
-
-The analysis engine is usable without the GUI. The documented public
-API is:
-
-- `read_force_csv`, `load_trial` — plate-agnostic CSV import
-- `calculate_bodyweight` — bodyweight from the weighing phase
-- `detect_countermovement` — countermovement screening
-- `analyse_trial` — one-call analysis with a known bodyweight and onset
-- `calculate_force_metrics` — force metrics from onset-trimmed data
-- `IMTPTrial`, `IMTPResults` — the trial and results objects
-
-```python
-from imtp import load_trial, calculate_bodyweight, analyse_trial
-
-trial, = load_trial("trial.csv")
-trial.participant, trial.session, trial.trial = "P001", "T1", "1"
-
-bw = calculate_bodyweight(trial.data, weigh_start=1.0)
-results = analyse_trial(bw["df"], bw["weight"], onset_time=3.42)
-print(results.peak_force, results.f250)
+Alternatively, on macOS, launch the application by double-clicking:
 ```
+scripts/launch-imtp-gui.command
+```
+The launcher can be copied to another location, such as the Desktop. It remembers the previously selected project location and will prompt for the project folder if it cannot be found.
 
-This interface supports programmatic use of the analysis engine —
-notebooks, scripted re-analysis, quality control — without the GUI.
-Onset identification stays manual by design (see above): `onset_time`
-is always an analyst-provided input. Everything outside `imtp`'s
-`__all__` is internal and may change without notice.
+To analyse IMTP trials:
 
-## Package layout
+1. Choose an existing results CSV or create a new one.
+2. Select a force-plate CSV file. Multi-run PASCO exports are loaded as separate trials.
+3. Enter the participant, session, and trial identifiers.
+4. Select the start of the weighing phase.
+5. Review the countermovement screening result.
+6. Position the red line at force onset and click **Save**.
+7. Review the calculated variables, which are appended to the selected CSV.
 
-- `imtp.io` — force-plate CSV import (PASCO, Hawkin Dynamics, generic
-  fallback)
-- `imtp.processing` — bodyweight, countermovement screening, onset
-  utilities, force metrics (no GUI, no import, no export code)
-- `imtp.models` — `IMTPTrial` and `IMTPResults` objects
-- `imtp.export` — CSV output
-- `imtp.gui` — analyst interaction widgets (macOS-only)
-- `imtp.workflows` — orchestration: the analyst GUI workflow
-- `imtp.cli` — the `imtp` command
+Repeat the process for additional trials, or cancel the file-selection dialog to finish the analysis session.
 
-Scientific calculations never depend on the GUI: the core package
-imports cleanly without matplotlib or PySimpleGUI, which is enforced by
-the test suite.
+## Outputs
+
+For each analysed trial, `imtp-processor` reports net force at 50, 100, 150, 200, and 250 ms after force onset, together with peak net force. Results are appended to the selected results CSV as one row per trial.
+
+Definitions of the reported variables and their calculations are described in Methods.
+
+## Methods
+
+The analytical methods implemented in `imtp-processor`, including bodyweight determination, countermovement screening, force-onset identification, and calculation of force-time variables, are described in Methods.md
+
+The methods documentation also provides the methdological rationale and supporting literature for the analytical procedures used by the pipeline.
 
 ## Testing
 
-```bash
-pip install -e ".[gui,test]"
-pytest
-```
+`imtp-processor` includes an automated test suite covering data import, analytical procedures, data models, and results export. Regression testing verifies that the analysis engine reproduces reference outputs, using fully synthetic force-time data.
 
-The suite covers the import layer (every plate format plus edge cases:
-multi-run padding, metadata preambles, left/right summing, distractor
-columns), bodyweight calculation, countermovement screening, onset
-utilities, force metrics, data models and export — plus a golden-master
-regression test that verifies the package reproduces the reference
-outputs (frozen in `tests/data/` from the original script) at float
-precision, and an architecture guard proving the analysis engine
-imports without any GUI or plotting dependency.
-
-The reference data and the `tools/golden_master.py` harness that
-generates it use fully synthetic force curves; no real participant
-data is included.
-
-## Methodological Basis and References
-The analytical procedures implemented in this Python script were informed by the following methodological literature:
-
-Guppy, S. N., Brady, C. J., Kotani, Y., Connolly, S., Comfort, P., Lake, J. P., & Haff, G. G. (2024). A comparison of manual and automatic force-onset identification methodologies and their effect on force-time characteristics in the isometric midthigh pull. *Sports Biomechanics*, *23*(10), 1663–1680. https://doi.org/10.1080/14763141.2021.1974532
-
-Smith, J. C., Nagatani, T., Guppy, S. N., & Haff, G. G. (2025). Using Python to analyse isometric force-time curves. *Strength & Conditioning Journal*, *47*(3), 287–301. https://doi.org/10.1519/SSC.0000000000000872
 
 ## Acknowledgments
 
-The development of this script was supported by a NSCA Foundation Young
+The development of `imtp-processor` was supported by a NSCA Foundation Young
 Investigator Grant.
 
 ## Development
 
-This software was developed with the assistance of the GLM 5.3 large language model (Z.ai, China; hosted by Mistral AI, France).
+I use have used the GLM 5.3 (Z.ai, China; hosted by Mistral AI) and Mistral Large 4 (Mistral AI, France) large language models during the development of `imtp-processor`. These models have assisted with software planning, code generation, testing, documentation, and debugging.
 
-AI assistance was used for software design discussion, code generation
-and refactoring, testing, documentation, and debugging. The analytical
-methods, methodological decisions, project requirements, and overall
-software architecture were specified and reviewed by the project
-author. AI-generated code was reviewed, tested, and revised as part of
-the development process.
-
-The author remains responsible for the scientific methods implemented
-by the software and for the correctness and interpretation of the
-outputs.
+I specified analytical methods, methdological decisions, and overall software architecture. AI-generated code is reviewed, tested, and revised as part of the development process. I remain responsible for the scientific methods implemented by the software and for the correctness and implementation of its outputs.
