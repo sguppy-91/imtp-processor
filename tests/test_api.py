@@ -12,16 +12,19 @@ import golden_master as gm  # the harness (on sys.path via conftest)
 import imtp
 from imtp import (IMTPResults, IMTPTrial, analyse_trial,
                   calculate_bodyweight, calculate_force_metrics,
-                  detect_countermovement, load_trial, read_force_csv)
+                  detect_countermovement, detect_onset_auto, load_trial,
+                   OnsetError, read_force_csv)
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 EXPECTED_SURFACE = {
     "IMTPResults",
     "IMTPTrial",
+    "OnsetError",
     "analyse_trial",
     "calculate_bodyweight",
     "calculate_force_metrics",
     "detect_countermovement",
+    "detect_onset_auto",
     "load_trial",
     "read_force_csv",
 }
@@ -81,3 +84,18 @@ def test_public_api_programmatic_flow():
     results = analyse_trial(bw["df"], bw["weight"], onset_time=3.5)
     assert results.peak_force == pytest.approx(1540.3753126330405,
                                                rel=1e-12)
+
+
+def test_public_api_automated_onset_flow():
+    """The opt-in automated branch works through public names only:
+    import -> bodyweight -> detect_onset_auto -> analysis, and the
+    computed onset time feeds analyse_trial unchanged."""
+    assert issubclass(OnsetError, Exception)
+    trial, = load_trial(DATA_DIR / "fixtures" / "hawkin.csv")
+    bw = calculate_bodyweight(trial.data, 1.0)
+    onset = detect_onset_auto(bw["df"], bw["weight"], bw["stddev"],
+                              sd_multiplier=5)
+    assert isinstance(onset, float)
+    results = analyse_trial(bw["df"], bw["weight"], onset_time=onset)
+    assert isinstance(results, IMTPResults)
+    assert results.peak_force > 0

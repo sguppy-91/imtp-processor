@@ -9,6 +9,7 @@ tested and stable:
     from imtp import read_force_csv, load_trial       # import
     from imtp import calculate_bodyweight             # weighing phase
     from imtp import detect_countermovement           # screening
+    from imtp import detect_onset_auto, OnsetError    # automated onset (opt-in)
     from imtp import analyse_trial                     # one-call analysis
     from imtp import calculate_force_metrics          # metrics only
     from imtp import IMTPTrial, IMTPResults           # data objects
@@ -21,17 +22,20 @@ from .processing.bodyweight import calculate_bodyweight
 from .processing.countermovement import (detect_countermovement,
                                          up_to_peak)
 from .processing.metrics import calculate_force_metrics
-from .processing.onset import select_onset, trim_to_onset
+from .processing.onset import (OnsetError, detect_onset_auto,
+                               select_onset, trim_to_onset)
 
 __version__ = "1.1.0"
 
 __all__ = [
     "IMTPResults",
     "IMTPTrial",
+    "OnsetError",
     "analyse_trial",
     "calculate_bodyweight",
     "calculate_force_metrics",
     "detect_countermovement",
+    "detect_onset_auto",
     "load_trial",
     "read_force_csv",
 ]
@@ -54,7 +58,8 @@ def analyse_trial(force_data, bodyweight, onset_time):
         bodyweight: estimated bodyweight in newtons (e.g. the ``weight``
             from calculate_bodyweight).
         onset_time: force onset in seconds, identified manually by the
-            analyst (the reference methodology, by design).
+            analyst (the reference methodology, by design) or computed
+            by detect_onset_auto in the opt-in automated branch.
 
     Returns:
         IMTPResults with peak_force and f50/f100/f150/f200/f250 (net
