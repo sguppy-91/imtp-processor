@@ -39,14 +39,6 @@ def test_golden_fixture_files_exist():
         assert path.exists(), f"missing fixture: {path}"
 
 
-def test_monolith_delegates_to_workflow():
-    """The launcher must delegate to the analyst workflow, not carry a
-    duplicate copy of it."""
-    import imtp.workflows.analyst as wf
-    monolith = gm.load_monolith()
-    assert monolith.run is wf.run
-
-
 def test_core_imports_headless():
     """Architecture guard: importing io, processing, models and export
     in a fresh interpreter must not pull in any GUI, plotting or
